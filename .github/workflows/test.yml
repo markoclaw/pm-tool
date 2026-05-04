@@ -1,0 +1,99 @@
+# PM Tool CI/CD — runs on every push and PR
+
+name: PM Tool CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run database smoke test
+        run: |
+          python -c "
+          import db
+          db.init_db()
+
+          # Project CRUD
+          p = db.create_project('CI Test', 'Auto test')
+          assert p['id'] > 0
+          assert db.get_project(p['id']) is not None
+          assert len(db.list_projects()) >= 1
+          db.update_project(p['id'], name='CI Test Updated')
+          assert db.get_project(p['id'])['name'] == 'CI Test Updated'
+
+          # Employee CRUD
+          e = db.create_employee('Test Engineer', 'Engineer', 150.0)
+          assert e['id'] > 0
+          assert e['billing_rate'] == 150.0
+          db.update_employee(e['id'], position='Senior Engineer', billing_rate=175.0)
+          updated = db.get_employee(e['id'])
+          assert updated['billing_rate'] == 175.0
+
+          # Task with employee + hours
+          t = db.create_task(p['id'], 'Test task', 'desc', employee_id=e['id'], hours_allocated=10)
+          assert t['hours_allocated'] == 10
+          assert t['employee_id'] == e['id']
+
+          # Subtask
+          st = db.create_task(p['id'], 'Subtask', 'sub', parent_task_id=t['id'], hours_allocated=5)
+          assert st['parent_task_id'] == t['id']
+
+          # Scope with hours
+          s = db.add_scope_item(p['id'], 'Scope item', 'design', hours_estimated=20)
+          assert s['hours_estimated'] == 20
+
+          # Budget
+          budget = db.get_project_budget(p['id'])
+          assert budget['total_task_hours'] == 15.0
+          assert budget['total_task_cost'] == 175.0 * 10 + 175.0 * 5  # 2625.0
+
+          # Cleanup
+          db.delete_project(p['id'])
+          assert db.get_project(p['id']) is None
+
+          print('All CI tests passed')
+          "
+
+      - name: Run parser smoke test
+        run: |
+          python -c "
+          import parser
+          # Parse Excel
+          import openpyxl, os
+          wb = openpyxl.Workbook()
+          ws = wb.active
+          ws.title = 'Scope'
+          ws.append(['Item', 'Category', 'Description', 'Qty', 'Rate', 'Total'])
+          ws.append(['Demo', 'demolition', 'Remove concrete', '500', '45', '22500'])
+          wb.save('/tmp/test.xlsx')
+          text, ftype = parser.parse_file('/tmp/test.xlsx')
+          assert 'Demo' in text
+          assert 'Remove concrete' in text
+          os.unlink('/tmp/test.xlsx')
+          print('Parser test passed')
+          "
+
+      - name: Run server import test
+        run: |
+          python -c "
+          import importlib
+          importlib.import_module('server')
+          print('Server module loads OK')
+          "

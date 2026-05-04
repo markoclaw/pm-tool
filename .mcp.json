@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "pm-tool": {
+      "command": "python",
+      "args": ["server.py"],
+      "cwd": "pm-tool"
+    }
+  }
+}

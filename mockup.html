@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PM Tool — AI-Native Project Management</title>
+<style>
+  :root {
+    --bg: #0c0c0d;
+    --bg2: #161618;
+    --bg3: #1e1e21;
+    --border: #2a2a2e;
+    --text: #ededef;
+    --text2: #9d9da6;
+    --accent: #7c5cfc;
+    --accent2: #5b3fd4;
+    --green: #30c26b;
+    --yellow: #f5b73b;
+    --red: #e5484d;
+    --blue: #3b9eff;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: var(--font); background: var(--bg); color: var(--text);
+    height: 100vh; display: flex; overflow: hidden;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: 260px; background: var(--bg2); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  .sidebar-header {
+    padding: 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo { 
+    width: 32px; height: 32px; background: var(--accent); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px;
+  }
+  .logo-text { font-weight: 700; font-size: 15px; }
+  .project-list { flex: 1; overflow-y: auto; padding: 8px; }
+  .project-item {
+    padding: 10px 12px; border-radius: var(--radius-sm); cursor: pointer;
+    display: flex; align-items: center; gap: 10px; font-size: 14px;
+    margin-bottom: 2px; transition: background .15s;
+  }
+  .project-item:hover { background: var(--bg3); }
+  .project-item.active { background: var(--accent); color: #fff; }
+  .project-dot { 
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    background: var(--green);
+  }
+  .project-item .count { margin-left: auto; font-size: 12px; color: var(--text2); }
+  .project-item.active .count { color: rgba(255,255,255,.7); }
+  .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
+  .btn-new { 
+    width: 100%; padding: 10px; background: var(--accent); color: #fff; border: none;
+    border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer;
+    font-family: var(--font);
+  }
+  .btn-new:hover { background: var(--accent2); }
+
+  /* Main */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .topbar {
+    padding: 16px 24px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .breadcrumb { font-size: 13px; color: var(--text2); }
+  .breadcrumb span { color: var(--text); font-weight: 600; }
+  .topbar-actions { display: flex; gap: 8px; }
+  .btn {
+    padding: 8px 16px; border-radius: var(--radius-sm); font-size: 13px;
+    font-weight: 500; cursor: pointer; border: 1px solid var(--border);
+    background: var(--bg3); color: var(--text); font-family: var(--font);
+    transition: all .15s;
+  }
+  .btn:hover { background: var(--border); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { background: var(--accent2); }
+
+  /* Content area */
+  .content { flex: 1; overflow-y: auto; padding: 24px; }
+  .tabs { display: flex; gap: 2px; margin-bottom: 24px; border-bottom: 1px solid var(--border); }
+  .tab {
+    padding: 10px 16px; font-size: 14px; cursor: pointer; border-bottom: 2px solid transparent;
+    color: var(--text2); transition: all .15s; background: none; border-top: none;
+    border-left: none; border-right: none; font-family: var(--font);
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+  /* Dashboard */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .card {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px;
+  }
+  .card-label { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .card-value { font-size: 28px; font-weight: 700; }
+  .card-value.green { color: var(--green); }
+  .card-value.yellow { color: var(--yellow); }
+  .card-value.blue { color: var(--blue); }
+  .card-sub { font-size: 13px; color: var(--text2); margin-top: 4px; }
+
+  .section { margin-bottom: 24px; }
+  .section-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--text2); margin-bottom: 12px; }
+
+  /* Progress bar */
+  .progress-bar { height: 8px; background: var(--bg3); border-radius: 4px; margin-top: 8px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 4px; transition: width .3s; }
+  .progress-fill.green { background: var(--green); }
+  .progress-fill.blue { background: var(--blue); }
+
+  /* Task table */
+  .table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .table th { text-align: left; padding: 10px 12px; font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border); font-weight: 600; }
+  .table td { padding: 12px; border-bottom: 1px solid var(--border); }
+  .table tr:hover td { background: var(--bg3); }
+
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600;
+  }
+  .badge.todo { background: rgba(59,158,255,.15); color: var(--blue); }
+  .badge.in_progress { background: rgba(245,183,59,.15); color: var(--yellow); }
+  .badge.done { background: rgba(48,194,107,.15); color: var(--green); }
+  .badge.blocked { background: rgba(229,72,77,.15); color: var(--red); }
+  .badge.critical { background: rgba(229,72,77,.15); color: var(--red); }
+  .badge.high { background: rgba(245,183,59,.15); color: var(--yellow); }
+  .badge.medium { background: rgba(59,158,255,.15); color: var(--blue); }
+  .badge.low { background: rgba(157,157,166,.15); color: var(--text2); }
+
+  /* Documents */
+  .doc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .doc-card {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px; cursor: pointer; transition: all .15s;
+  }
+  .doc-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .doc-icon { font-size: 24px; margin-bottom: 10px; }
+  .doc-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+  .doc-meta { font-size: 12px; color: var(--text2); }
+  .doc-preview { font-size: 13px; color: var(--text2); margin-top: 10px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* Scope */
+  .scope-group { margin-bottom: 20px; }
+  .scope-group-header { font-weight: 600; font-size: 14px; margin-bottom: 8px; text-transform: capitalize; padding: 6px 0; }
+  .scope-item {
+    display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px;
+    background: var(--bg3); border-radius: var(--radius-sm); margin-bottom: 6px; font-size: 14px;
+  }
+  .scope-bullet { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-top: 6px; flex-shrink: 0; }
+
+  /* AI Chat */
+  .chat-panel { display: flex; flex-direction: column; height: 500px; }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .chat-bubble {
+    max-width: 80%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.5;
+  }
+  .chat-bubble.user { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+  .chat-bubble.ai { background: var(--bg3); align-self: flex-start; border-bottom-left-radius: 4px; }
+  .chat-input-row { padding: 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+  .chat-input {
+    flex: 1; padding: 12px 16px; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text); font-size: 14px; font-family: var(--font);
+  }
+  .chat-input:focus { outline: none; border-color: var(--accent); }
+  .chat-send {
+    padding: 12px 20px; background: var(--accent); color: #fff; border: none;
+    border-radius: var(--radius); font-weight: 600; cursor: pointer; font-family: var(--font);
+  }
+
+  /* Upload zone */
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: var(--radius); padding: 40px;
+    text-align: center; cursor: pointer; transition: all .15s; margin-bottom: 20px;
+  }
+  .upload-zone:hover { border-color: var(--accent); background: rgba(124,92,252,.05); }
+  .upload-icon { font-size: 36px; margin-bottom: 12px; }
+  .upload-text { font-size: 14px; color: var(--text2); }
+  .upload-text strong { color: var(--accent); }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex;
+    align-items: center; justify-content: center; z-index: 100;
+  }
+  .modal {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px; width: 480px; max-width: 90vw;
+  }
+  .modal h2 { font-size: 18px; margin-bottom: 16px; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 6px; font-weight: 500; }
+  .field input, .field textarea, .field select {
+    width: 100%; padding: 10px 12px; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text); font-size: 14px; font-family: var(--font);
+  }
+  .field input:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
+  .field textarea { resize: vertical; min-height: 80px; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">P</div>
+    <div class="logo-text">PM Tool</div>
+  </div>
+  <div class="project-list" id="projectList">
+    <div class="project-item active" data-id="1">
+      <div class="project-dot"></div>
+      Route 22 Overpass
+      <span class="count">5</span>
+    </div>
+    <div class="project-item" data-id="2">
+      <div class="project-dot" style="background:var(--yellow)"></div>
+      Downtown Parking Garage
+      <span class="count">3</span>
+    </div>
+    <div class="project-item" data-id="3">
+      <div class="project-dot" style="background:var(--blue)"></div>
+      Riverfront Park Phase 2
+      <span class="count">8</span>
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <button class="btn-new" onclick="showModal('newProjectModal')">+ New Project</button>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <div class="topbar">
+    <div class="breadcrumb">Projects / <span id="projectName">Route 22 Overpass Rehab</span></div>
+    <div class="topbar-actions">
+      <button class="btn" onclick="showModal('uploadModal')">📄 Upload Document</button>
+      <button class="btn primary" onclick="showModal('newTaskModal')">+ Add Task</button>
+    </div>
+  </div>
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="dashboard">Dashboard</button>
+    <button class="tab" data-tab="tasks">Tasks</button>
+    <button class="tab" data-tab="documents">Documents</button>
+    <button class="tab" data-tab="scope">Scope</button>
+    <button class="tab" data-tab="ai">🤖 AI Brain</button>
+  </div>
+
+  <div class="content" id="content">
+    <!-- Dashboard Tab -->
+    <div id="tab-dashboard">
+      <div class="cards">
+        <div class="card">
+          <div class="card-label">Total Tasks</div>
+          <div class="card-value blue">5</div>
+          <div class="card-sub">2 high priority</div>
+          <div class="progress-bar"><div class="progress-fill blue" style="width:20%"></div></div>
+        </div>
+        <div class="card">
+          <div class="card-label">Completed</div>
+          <div class="card-value green">1</div>
+          <div class="card-sub">20% complete</div>
+        </div>
+        <div class="card">
+          <div class="card-label">In Progress</div>
+          <div class="card-value yellow">1</div>
+          <div class="card-sub">Structural repairs</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Documents</div>
+          <div class="card-value">2</div>
+          <div class="card-sub">1 Excel · 1 PDF</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Scope Items</div>
+          <div class="card-value">5</div>
+          <div class="card-sub">Across 3 categories</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Recent Tasks</div>
+        <table class="table">
+          <thead><tr><th>Task</th><th>Priority</th><th>Status</th><th>Due</th></tr></thead>
+          <tbody>
+            <tr><td>Structural repairs — Repair 12 expansion joints</td><td><span class="badge critical">Critical</span></td><td><span class="badge in_progress">In Progress</span></td><td>—</td></tr>
+            <tr><td>Demolition prep — Remove existing asphalt overlay</td><td><span class="badge high">High</span></td><td><span class="badge todo">Todo</span></td><td>—</td></tr>
+            <tr><td>Guardrail replacement — 800 linear ft</td><td><span class="badge high">High</span></td><td><span class="badge todo">Todo</span></td><td>Oct 15</td></tr>
+            <tr><td>Lighting install — 24 LED fixtures</td><td><span class="badge medium">Medium</span></td><td><span class="badge todo">Todo</span></td><td>—</td></tr>
+            <tr><td>Budget review — Review $1.2M budget</td><td><span class="badge medium">Medium</span></td><td><span class="badge done">Done</span></td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tasks Tab -->
+    <div id="tab-tasks" class="hidden">
+      <div class="section">
+        <div class="section-title">All Tasks</div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <button class="btn" style="border-color:var(--accent);color:var(--accent);">All</button>
+          <button class="btn">Todo</button>
+          <button class="btn">In Progress</button>
+          <button class="btn">Done</button>
+        </div>
+        <table class="table">
+          <thead><tr><th>Task</th><th>Description</th><th>Priority</th><th>Status</th><th>Due Date</th><th>Assigned</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600">Structural repairs</td><td>Repair 12 expansion joints, waterproof membrane</td><td><span class="badge critical">Critical</span></td><td><span class="badge in_progress">In Progress</span></td><td>—</td><td>—</td></tr>
+            <tr><td style="font-weight:600">Demolition prep</td><td>Remove existing asphalt overlay - 2400 sq yd</td><td><span class="badge high">High</span></td><td><span class="badge todo">Todo</span></td><td>—</td><td>—</td></tr>
+            <tr><td style="font-weight:600">Guardrail replacement</td><td>800 linear ft guardrail</td><td><span class="badge high">High</span></td><td><span class="badge todo">Todo</span></td><td>2026-10-15</td><td>—</td></tr>
+            <tr><td style="font-weight:600">Lighting install</td><td>Install 24 LED fixtures</td><td><span class="badge medium">Medium</span></td><td><span class="badge todo">Todo</span></td><td>—</td><td>—</td></tr>
+            <tr><td style="font-weight:600">Budget review</td><td>Review $1.2M budget and $200K contingency</td><td><span class="badge medium">Medium</span></td><td><span class="badge done">Done</span></td><td>—</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Documents Tab -->
+    <div id="tab-documents" class="hidden">
+      <div class="section-title">Project Documents</div>
+      <div class="doc-grid">
+        <div class="doc-card" onclick="alert('Would open document viewer')">
+          <div class="doc-icon">📊</div>
+          <div class="doc-name">scope_of_work.xlsx</div>
+          <div class="doc-meta">Excel · 801 chars · Added today</div>
+          <div class="doc-preview">Site Preparation | Foundation Piers | Steel Structure | Deck Installation | Railings — with costs and timelines</div>
+        </div>
+        <div class="doc-card" onclick="alert('Would open document viewer')">
+          <div class="doc-icon">📝</div>
+          <div class="doc-name">bridge_scope_notes.md</div>
+          <div class="doc-meta">Markdown · 474 chars · Added today</div>
+          <div class="doc-preview">Bridge Rehabilitation scope — Demolition 2400 sq yd, Structural repairs 12 joints, Electrical lighting, Safety guardrails 800 ft, Budget $1.2M</div>
+        </div>
+      </div>
+      <div class="upload-zone" style="margin-top:20px;" onclick="showModal('uploadModal')">
+        <div class="upload-icon">📤</div>
+        <div class="upload-text">Drop PDF, Excel, or Word files here<br><strong>or click to browse</strong></div>
+      </div>
+    </div>
+
+    <!-- Scope Tab -->
+    <div id="tab-scope" class="hidden">
+      <div class="section-title">Scope of Work Breakdown</div>
+      <div class="scope-group">
+        <div class="scope-group-header">🔨 Construction</div>
+        <div class="scope-item"><div class="scope-bullet"></div>Site Preparation — civil work, lump sum, est. $45,000, starts Jun 1 (14 days)</div>
+        <div class="scope-item"><div class="scope-bullet"></div>Foundation Piers — 8 piers, structural, est. $120,000, starts Jun 15 (21 days)</div>
+        <div class="scope-item"><div class="scope-bullet"></div>Steel Structure — lump sum, structural, est. $85,000, starts Jul 15 (30 days)</div>
+      </div>
+      <div class="scope-group">
+        <div class="scope-group-header">🎨 Finishing</div>
+        <div class="scope-item"><div class="scope-bullet"></div>Deck Installation — sq ft, est. $32,000, starts Aug 15 (14 days)</div>
+        <div class="scope-item"><div class="scope-bullet"></div>Railings — 2 linear ft, est. $18,000, starts Sep 1 (10 days)</div>
+      </div>
+    </div>
+
+    <!-- AI Brain Tab -->
+    <div id="tab-ai" class="hidden">
+      <div class="chat-panel">
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-bubble ai">
+            👋 I'm your AI project brain. I have access to all project documents, tasks, and scope items.<br><br>
+            Try asking: <em>"What's the total estimated cost?"</em> or <em>"Which tasks are behind schedule?"</em>
+          </div>
+          <div class="chat-bubble user">What's our total budget and what are the biggest risks right now?</div>
+          <div class="chat-bubble ai">
+            Based on the project documents:<br><br>
+            <strong>Total Budget:</strong> $1.2M + $200K contingency = <strong>$1.4M</strong><br>
+            <strong>Estimated costs from scope:</strong> ~$300K across 5 line items (Site Prep, Foundations, Steel, Deck, Railings)<br><br>
+            <strong>Risk Analysis:</strong><br>
+            • <strong>Structural repairs</strong> (Critical) — 12 expansion joints, no start date assigned<br>
+            • <strong>Guardrail replacement</strong> (High) — Due Oct 15, not yet started<br>
+            • <strong>Timeline:</strong> Documentation shows substantial completion target Nov 2026 — 3 of 4 tasks still <em>todo</em>
+          </div>
+          <div class="chat-bubble user">Which tasks have no assigned person?</div>
+          <div class="chat-bubble ai">
+            All 5 tasks currently have no assignee. The tasks needing assignment are:<br>
+            • Structural repairs <em>(Critical)</em><br>
+            • Demolition prep <em>(High)</em><br>
+            • Guardrail replacement <em>(High)</em><br>
+            • Lighting install <em>(Medium)</em><br>
+            • Budget review <em>(Medium, already Done)</em><br><br>
+            Want me to suggest assignments based on the scope categories?
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <input class="chat-input" placeholder="Ask anything about your projects..." id="chatInput" 
+                 onkeypress="if(event.key==='Enter')sendChat()">
+          <button class="chat-send" onclick="sendChat()">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modals -->
+<div class="modal-overlay hidden" id="newProjectModal">
+  <div class="modal">
+    <h2>New Project</h2>
+    <div class="field"><label>Project Name</label><input placeholder="e.g. Downtown Bridge Rehab"></div>
+    <div class="field"><label>Description</label><textarea placeholder="Brief project description..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="hideModal('newProjectModal')">Cancel</button>
+      <button class="btn primary" onclick="hideModal('newProjectModal');alert('Project created!')">Create</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="newTaskModal">
+  <div class="modal">
+    <h2>New Task</h2>
+    <div class="field"><label>Title</label><input placeholder="Task title..."></div>
+    <div class="field"><label>Description</label><textarea placeholder="Task details..."></textarea></div>
+    <div class="field"><label>Priority</label><select><option>Medium</option><option>Low</option><option>High</option><option>Critical</option></select></div>
+    <div class="field"><label>Due Date</label><input type="date"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="hideModal('newTaskModal')">Cancel</button>
+      <button class="btn primary" onclick="hideModal('newTaskModal');alert('Task created!')">Create</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="uploadModal">
+  <div class="modal">
+    <h2>Upload Document</h2>
+    <div style="padding:30px;text-align:center;border:2px dashed var(--border);border-radius:var(--radius);margin-bottom:16px;">
+      <div style="font-size:36px;margin-bottom:8px;">📄</div>
+      <div style="color:var(--text2)">PDF · Excel · CSV · Word</div>
+    </div>
+    <div style="font-size:13px;color:var(--text2);text-align:center;">
+      The AI will parse and extract:<br>
+      Scope items, tasks, deadlines, budgets, stakeholders
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="hideModal('uploadModal')">Cancel</button>
+      <button class="btn primary" onclick="hideModal('uploadModal');alert('Document uploaded! AI parsing...')">Upload & Parse</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Tab switching
+  document.getElementById('tabs').addEventListener('click', e => {
+    if (!e.target.classList.contains('tab')) return;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    e.target.classList.add('active');
+    document.querySelectorAll('#content > div').forEach(d => d.classList.add('hidden'));
+    document.getElementById('tab-' + e.target.dataset.tab).classList.remove('hidden');
+  });
+
+  // Project switching
+  document.getElementById('projectList').addEventListener('click', e => {
+    const item = e.target.closest('.project-item');
+    if (!item) return;
+    document.querySelectorAll('.project-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+    document.getElementById('projectName').textContent = item.textContent.trim().split('\n')[0].trim();
+  });
+
+  // Modals
+  function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
+  function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
+  document.querySelectorAll('.modal-overlay').forEach(o => {
+    o.addEventListener('click', e => { if (e.target === o) o.classList.add('hidden'); });
+  });
+
+  // Chat
+  function sendChat() {
+    const input = document.getElementById('chatInput');
+    const msg = input.value.trim();
+    if (!msg) return;
+    const container = document.getElementById('chatMessages');
+    container.innerHTML += '<div class="chat-bubble user">' + msg + '</div>';
+    input.value = '';
+    setTimeout(() => {
+      container.innerHTML += '<div class="chat-bubble ai">🤔 <em>Querying project database...</em><br>This is a mockup — in production, the MCP server would return real results from your SQLite database with full document context.</div>';
+      container.scrollTop = container.scrollHeight;
+    }, 600);
+  }
+</script>
+
+</body>
+</html>

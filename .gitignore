@@ -1,0 +1,4 @@
+.llm_config.json
+*.pyc
+__pycache__/
+pm_data.db

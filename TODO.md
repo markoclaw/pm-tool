@@ -12,13 +12,13 @@ Master todo list. Add tasks by creating a [GitHub Issue](https://github.com/mark
 
 | # | Task | Priority | Status | Rating |
 |---|------|----------|--------|--------|
-| 1 | CI/CD pipeline passing | 🔴 high | 🟡 doing | — |
+| — | — | — | — | — |
 
 ## Completed
 
 | # | Task | Priority | Rating | Notes |
 |---|------|----------|--------|-------|
-| — | — | — | — | — |
+| 1 | CI/CD pipeline passing | 🔴 high | — | Python 3.11 compat fix (nested f-string) |
 
 ---
 

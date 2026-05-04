@@ -44,7 +44,7 @@ def _call_openrouter(system_prompt: str, user_prompt: str) -> str:
         _LLM_CONFIG["base_url"],
         data=body,
         headers={
-            "Authorization": f"Bearer {_LLM_CONFIG["api_key"]}",
+            "Authorization": "Bearer " + _LLM_CONFIG["api_key"],
             "Content-Type": "application/json",
             "HTTP-Referer": "http://localhost:8000",
             "X-Title": "PM Tool",
